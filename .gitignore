@@ -8,3 +8,25 @@ config/prod/.env
 
 # Root environment file (contains backend secrets) - DO NOT COMMIT
 /.env
+
+# Environment variables
+.env.*.local
+.env.*.secrets
+.env.prod
+
+# Docker
+docker-compose.override.yml
+
+# VSCode
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+/dist
+/build
+
+*.local
