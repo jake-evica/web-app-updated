@@ -1,0 +1,90 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:12
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  adminer:
+    image: adminer:4
+    depends_on:
+      - db
+    networks:
+      - default
+
+  prestart:
+    image: jakeevica/backend:latest
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: bash /app/scripts/prestart.sh
+    networks:
+      - default
+
+  backend:
+    image: jakeevica/backend:latest
+    depends_on:
+      db:
+        condition: service_healthy
+      prestart:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    networks:
+      - default
+
+  frontend:
+    image: jakeevica/frontend:latest
+    volumes:
+      - ./frontend/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - default
+
+  proxy:
+    image: nginx:1.25
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/nginx/ssl:ro
+      - ./certbot/data:/var/www/certbot:ro
+    env_file:
+      - .env
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - default
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt:rw
+      - ./certbot/data:/var/www/certbot:rw
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${EMAIL} --agree-tos --no-eff-email -d app.${DOMAIN} -d api.${DOMAIN} -d adminer.${DOMAIN}
+    networks:
+      - default
+
+volumes:
+  app-db-data:
+
+networks:
+  default:
+    name: app-network

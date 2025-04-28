@@ -1,0 +1,10 @@
+.vscode
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+config/prod/.env
+
+# Root environment file (contains backend secrets) - DO NOT COMMIT
+/.env

@@ -1,0 +1,195 @@
+:root {
+  --foreground-rgb: 242, 239, 255;
+  --background-start-rgb: 10, 5, 20;
+  --background-end-rgb: 25, 10, 45;
+  --accent-primary: 4, 93, 233;
+  --accent-secondary: 9, 198, 249;
+  --accent-tertiary: 14, 165, 233;
+  --accent-quaternary: 152, 185, 248;
+  --accent-yellow: 250, 165, 108;
+  --accent-purple: 142, 36, 170;
+  --accent-purple-dark: 90, 24, 110;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
+    );
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(var(--accent-purple), 0.1) 0%,
+    rgba(var(--accent-primary), 0) 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.glass-card {
+  background: rgba(15, 8, 30, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--accent-purple-dark), 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent,
+    rgba(var(--accent-primary), 0.5), 
+    rgba(var(--accent-tertiary), 0.5),
+    rgba(var(--accent-primary), 0.5),
+    transparent
+  );
+  z-index: -1;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .bg-blur {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .gradient-text {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  
+  .futuristic-glow {
+    box-shadow: 0 0 15px rgba(var(--accent-primary), 0.5);
+  }
+  
+  .animated-border {
+    position: relative;
+    z-index: 0;
+  }
+  
+  .animated-border::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -1px;
+    background: linear-gradient(90deg, 
+      rgba(var(--accent-primary), 0.7),
+      rgba(var(--accent-tertiary), 0.7),
+      rgba(var(--accent-purple), 0.7),
+      rgba(var(--accent-primary), 0.7)
+    );
+    background-size: 300% 100%;
+    border-radius: inherit;
+    animation: borderAnimation 8s linear infinite;
+  }
+  
+  @keyframes borderAnimation {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+  
+  .pulse-on-hover:hover {
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+}
+
+.hero-gradient {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(var(--accent-purple-dark), 0.4));
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-gradient::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(var(--accent-primary), 0.1) 0%, transparent 30%),
+    radial-gradient(circle at 80% 80%, rgba(var(--accent-purple), 0.1) 0%, transparent 30%);
+  pointer-events: none;
+}
+
+.navbar-blur {
+  background: rgba(5, 2, 15, 0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(var(--accent-purple), 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Custom animations for logo */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reverse-spin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+.animate-reverse-spin {
+  animation: reverse-spin 10s linear infinite;
+} 
