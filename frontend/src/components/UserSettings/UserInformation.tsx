@@ -184,7 +184,7 @@ const UserInformation = () => {
             )}
             <SecondaryButton
               onClick={() => {
-                window.location.href = "/api/v1/auth/amazon/login"
+                window.location.href = "/api/api/v1/auth/amazon/login"
               }}
             >
               Link Amazon Account

@@ -1,6 +1,6 @@
 import secrets
 import warnings
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Type
 
 from pydantic import (
     AnyUrl,
@@ -9,41 +9,43 @@ from pydantic import (
     HttpUrl,
     PostgresDsn,
     SecretStr,
-    computed_field,
     model_validator,
 )
-from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Self
 
-
+# Function to parse CORS settings
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",")]
-    elif isinstance(v, list | str):
+    elif isinstance(v, (list, str)):  # Fixed to use proper type hinting
         return v
     raise ValueError(v)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Use top level .env file (one level above ./backend/)
-        env_file="../.env",
+        env_file="/app/.env",  # Ensure this is the correct path to .env file
         env_ignore_empty=True,
         extra="ignore",
     )
+
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: SecretStr = SecretStr(secrets.token_urlsafe(32))
-    # 60 minutes * 24 hours * 8 days = 8 days
+    SECRET_KEY: SecretStr  # SECRET_KEY is now pulled from the .env
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
-    ] = []
+    ] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://api.gosystemslab.com",
+        "https://app.gosystemslab.com"
+    ]
 
-    @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
         return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] + [
@@ -58,7 +60,6 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: SecretStr = SecretStr("")
     POSTGRES_DB: str = ""
 
-    @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
         db_password = self.POSTGRES_PASSWORD.get_secret_value() if self.POSTGRES_PASSWORD else ""
@@ -81,14 +82,13 @@ class Settings(BaseSettings):
     EMAILS_FROM_NAME: EmailStr | None = None
 
     @model_validator(mode="after")
-    def _set_default_emails_from(self) -> Self:
+    def _set_default_emails_from(self) -> Type["Settings"]:
         if not self.EMAILS_FROM_NAME:
             self.EMAILS_FROM_NAME = self.PROJECT_NAME
         return self
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
 
-    @computed_field  # type: ignore[prop-decorator]
     @property
     def emails_enabled(self) -> bool:
         return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     # --- Amazon Ads API Credentials ---
     AMAZON_CLIENT_ID: str | None = None
     AMAZON_CLIENT_SECRET: SecretStr | None = None
-    AMAZON_REDIRECT_URI: str | None = "http://localhost:8000/api/v1/auth/amazon/callback" # Default for local dev
+    AMAZON_REDIRECT_URI: str | None = "http://localhost:8000/api/v1/auth/amazon/callback"
 
     # --- Token Encryption ---
     TOKEN_ENCRYPTION_KEY: SecretStr | None = None
@@ -118,22 +118,26 @@ class Settings(BaseSettings):
                 raise ValueError(message)
 
     @model_validator(mode="after")
-    def _enforce_non_default_secrets(self) -> Self:
+    def _enforce_non_default_secrets(self) -> Type["Settings"]:
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
         self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
         self._check_default_secret(
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )
-        # Optionally enforce Amazon secrets in production
         if self.ENVIRONMENT != "local":
-             if not self.AMAZON_CLIENT_ID:
-                 raise ValueError("AMAZON_CLIENT_ID is not set in production environment.")
-             if not self.AMAZON_CLIENT_SECRET:
-                  raise ValueError("AMAZON_CLIENT_SECRET is not set in production environment.")
-             if not self.TOKEN_ENCRYPTION_KEY:
-                 raise ValueError("TOKEN_ENCRYPTION_KEY is not set in non-local environment.")
-
+            if not self.AMAZON_CLIENT_ID:
+                raise ValueError("AMAZON_CLIENT_ID is not set in production environment.")
+            if not self.AMAZON_CLIENT_SECRET:
+                raise ValueError("AMAZON_CLIENT_SECRET is not set in production environment.")
+            if not self.TOKEN_ENCRYPTION_KEY:
+                raise ValueError("TOKEN_ENCRYPTION_KEY is not set in non-local environment.")
         return self
 
+    # Debugging SECRET_KEY
+    @property
+    def debug_secret_key(self):
+        print(f"SECRET_KEY: {self.SECRET_KEY.get_secret_value()}")
+        return self.SECRET_KEY.get_secret_value()
 
-settings = Settings()  # type: ignore
+
+settings = Settings()  # Load settings

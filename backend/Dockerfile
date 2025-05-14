@@ -1,43 +1,38 @@
-FROM python:3.10
+FROM python:3.10 AS base
 
+# Set working directory
+WORKDIR /app
+
+# Install necessary system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pip, setuptools, and wheel
+RUN pip install --upgrade pip setuptools wheel
+
+# Set environment variables
 ENV PYTHONUNBUFFERED=1
-
-WORKDIR /app/
-
-# Install uv
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /bin/
-
-# Place executables in the environment at the front of the path
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
+ENV PYTHONPATH=/app
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Compile bytecode
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
-ENV UV_COMPILE_BYTECODE=1
-
-# uv Cache
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
-ENV UV_LINK_MODE=copy
-
-# Install dependencies
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project
-
-ENV PYTHONPATH=/app
-
-COPY ./scripts /app/scripts
-
-COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
-
+# Copy application files first
 COPY ./app /app/app
+COPY ./scripts /app/scripts
+COPY ./alembic.ini /app/
+COPY ./pyproject.toml ./uv.lock /app/
+COPY .env /app/.env
 
-# Sync the project
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync
+# Now install the app in editable mode
+RUN pip install -e .
 
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+# Install uvicorn to run FastAPI (install after app to avoid cache busting)
+RUN pip install "uvicorn[standard]"
+
+# Command to run the app using uvicorn
+CMD ["uvicorn", "app.main:app", "--workers", "4", "--host", "0.0.0.0", "--port", "8000"]
+

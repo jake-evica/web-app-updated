@@ -18,53 +18,35 @@ services:
     networks:
       - default
 
-  adminer:
-    image: adminer:4
-    depends_on:
-      - db
-    networks:
-      - default
-
-  prestart:
-    image: jakeevica/backend:latest
-    build:
-      context: ./backend
-
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - .env
-    command: bash /app/scripts/prestart.sh
-    networks:
-      - default
 
   backend:
-    image: jakeevica/backend:latest
+    #image: jakeevica/backend:latest
+    build: ./backend
     ports:
-      - 8000:8000
+      - "8000:8000"
+#    environment:
+ #     - SECRET_KEY=evib2IdXmCZ0sM6nBW61Ak5PMEoRSaf7bvxal59_E_A
+
     depends_on:
       db:
         condition: service_healthy
-      prestart:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-    networks:
-      - default
-  frontend:
-    #image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
-    restart: always
-    networks:
-      - default
-    build:
-      context: ./frontend
-      args:
-        - VITE_API_URL=https://api.${DOMAIN?Variable not set}
-        - NODE_ENV=production
-    ports:
-      - "3000:80"
+ #   env_file:
+  #    - .env
 
+    volumes:
+      - .env:/app/.env 
+    networks:
+      - default
+
+  frontend:
+    image: jakeevica/frontend:latest
+    build: ./frontend
+#    ports:
+ #     - 3000:80
+  #  volumes:
+   #   - ./frontend/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - default
 
 volumes:
   app-db-data:
